@@ -1,6 +1,8 @@
 const AdvantageChart = require('../model/chart.model')
-const HTTP = require("../constants/responseCode.constant");
-    
+const WonElement = require('../model/wonElement.model')
+const HTTP = require("../constants/responseCode.constant")
+const manageControllers = require('./manage.controller');
+
 // Advantage Chart
 (async function defaultChart(req, res) {
     try {
@@ -15,7 +17,8 @@ const HTTP = require("../constants/responseCode.constant");
                     { name: "earth", value: -10 },
                     { name: "plant", value: 20 },
                     { name: "lightening", value: 0 },
-                ]
+                ],
+                elemental_power: Array.from({length: 10}, (v, k) => k+1)
             },
             {
                 element_name: "water", 
@@ -26,7 +29,8 @@ const HTTP = require("../constants/responseCode.constant");
                     { name: "earth", value: 20 },
                     { name: "plant", value: -10 },
                     { name: "lightening", value: 20 },
-                ]
+                ],
+                elemental_power: Array.from({length: 10}, (v, k) => k+11)
             },
             {
                 element_name: "air", 
@@ -37,7 +41,8 @@ const HTTP = require("../constants/responseCode.constant");
                     { name: "earth", value: -10 },
                     { name: "plant", value: 10 },
                     { name: "lightening", value: 0 },
-                ]
+                ],
+                elemental_power: Array.from({length: 10}, (v, k) => k+21)
             },
             {
                 element_name: "earth",
@@ -48,7 +53,8 @@ const HTTP = require("../constants/responseCode.constant");
                     { name: "earth", value: 0 },
                     { name: "plant", value: -10 },
                     { name: "lightening", value: 10 },
-                ]
+                ],
+                elemental_power: Array.from({length: 10}, (v, k) => k+31)
             },
             {
                 element_name: "plant", 
@@ -59,7 +65,8 @@ const HTTP = require("../constants/responseCode.constant");
                     { name: "earth", value: 10 },
                     { name: "plant", value: 0 },
                     { name: "lightening", value: 10 },
-                ]
+                ],
+                elemental_power: Array.from({length: 12}, (v, k) => k+41)
             },
             {
                 element_name: "lightening", 
@@ -70,7 +77,8 @@ const HTTP = require("../constants/responseCode.constant");
                     { name: "earth", value: -20 },
                     { name: "plant", value: -10 },
                     { name: "lightening", value: 0 },
-                ]
+                ],
+                elemental_power: Array.from({length: 12}, (v, k) => k+53)
             }
         ]
           
@@ -87,8 +95,6 @@ const HTTP = require("../constants/responseCode.constant");
         return
     }
 })()
-
-
 
 async function rumbleElements(req, res) {
     let element = ""
@@ -188,16 +194,66 @@ async function rumbleElements(req, res) {
         console.log(elementA + " Attack Power: " + elementalAttack_A)
         console.log(elementB + " Attack Power: " + elementalAttack_B + "\n")
 
-        function addWinner(element, token) {
-            
-        }
-
+        // function addWinner(element, token) {
+        //     const elementExist = WonElement.findOne({ element_name: element })
+        //     if (elementExist) {
+        //         const update = WonElement.findOneAndUpdate({ element_name: element }, { "$push": { elemental_id: token } }, { new: true })   
+        //         if(!update) return res.status(HTTP.SUCCESS).send({ "status": false, 'code': HTTP.BAD_REQUEST, "message": "Could not add winner!" })
+        //         return res.status(HTTP.SUCCESS).send({ 'status': true, 'code': HTTP.SUCCESS, 'message': 'Added Winner', 'data': update }) 
+        //     } else {
+        //         const addData = new WonElement({ element_name: element, elemental_id: token }).save()
+        //         if (!addData) return res.status(HTTP.SUCCESS).send({ "status": false, 'code': HTTP.BAD_REQUEST, "message": "Could not add winner!" })
+        //         return res.status(HTTP.SUCCESS).send({ 'status': true, 'code': HTTP.SUCCESS, 'message': 'Added Winner', 'data': addData }) 
+        //     }
+        // }
+        
         if (elementalAttack_A > elementalAttack_B) {
-            addWinner(elementA, tokenA)
             console.log(elementA + " elemental Wins!")
+            const winner = manageControllers.addWinner(elementA, tokenA)
+            if(!winner) return res.status(HTTP.SUCCESS).send({ "status": false, 'code': HTTP.BAD_REQUEST, "message": "could not add winner", data: {} })
+            
+            const lost = manageControllers.addLoser(elementB, tokenB)
+            if(!lost) return res.status(HTTP.SUCCESS).send({ "status": false, 'code': HTTP.BAD_REQUEST, "message": "could not add loser", data: {} })
+
+            return res.status(HTTP.SUCCESS).send({ 'status': true, 'code': HTTP.SUCCESS, 'message': 'Added Winner', 'data': getA })
+            
+
+            // addWinner(elementA, tokenA)
+
+            // const elementExist = await WonElement.findOne({ element_name: elementA })
+            // if (elementExist) {
+            //     const update = await WonElement.findOneAndUpdate({ element_name: elementA }, { "$push": { elemental_id: tokenA } }, { new: true })   
+            //     if(!update) return res.status(HTTP.SUCCESS).send({ "status": false, 'code': HTTP.BAD_REQUEST, "message": "Could not add winner!" })
+            //     return res.status(HTTP.SUCCESS).send({ 'status': true, 'code': HTTP.SUCCESS, 'message': 'Added Winner', 'data': update }) 
+            // } else {
+            //     const addData = await new WonElement({ element_name: elementA, elemental_id: tokenA }).save()
+            //     if (!addData) return res.status(HTTP.SUCCESS).send({ "status": false, 'code': HTTP.BAD_REQUEST, "message": "Could not add winner!" })
+            //     return res.status(HTTP.SUCCESS).send({ 'status': true, 'code': HTTP.SUCCESS, 'message': 'Added Winner', 'data': addData }) 
+            // }
+
         } else {
-            addWinner(elementB, tokenB)
             console.log(elementB + " elemental Wins!")
+            const winner = manageControllers.addWinner(elementB, tokenB)
+            if(!winner) return res.status(HTTP.SUCCESS).send({ "status": false, 'code': HTTP.BAD_REQUEST, "message": "could not add winner", data: {} })
+            
+            const lost = manageControllers.addLoser(elementA, tokenA)
+            if (!lost) return res.status(HTTP.SUCCESS).send({ "status": false, 'code': HTTP.BAD_REQUEST, "message": "could not add loser", data: {} })
+            
+            return res.status(HTTP.SUCCESS).send({ 'status': true, 'code': HTTP.SUCCESS, 'message': 'Added Winner', 'data': getB })
+            
+            // addWinner(elementB, tokenB)
+
+            // const elementExist = await WonElement.findOne({ element_name: elementB })
+            // if (elementExist) {
+            //     const update = await WonElement.findOneAndUpdate({ element_name: elementB }, { "$push": { elemental_id: tokenB } }, { new: true })   
+            //     if(!update) return res.status(HTTP.SUCCESS).send({ "status": false, 'code': HTTP.BAD_REQUEST, "message": "Could not add winner!" })
+            //     return res.status(HTTP.SUCCESS).send({ 'status': true, 'code': HTTP.SUCCESS, 'message': 'Added Winner', 'data': update }) 
+            // } else {
+            //     const addData = await new WonElement({ element_name: elementB, elemental_id: tokenB }).save()
+            //     if (!addData) return res.status(HTTP.SUCCESS).send({ "status": false, 'code': HTTP.BAD_REQUEST, "message": "Could not add winner!" })
+            //     return res.status(HTTP.SUCCESS).send({ 'status': true, 'code': HTTP.SUCCESS, 'message': 'Added Winner', 'data': addData }) 
+            // }
+
         }
 
         return res.status(HTTP.SUCCESS).send({ 'status': true, 'code': HTTP.SUCCESS, 'message': 'generated token: ', 'data': getA })     
