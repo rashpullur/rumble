@@ -88,11 +88,13 @@ const HTTP = require("../constants/responseCode.constant");
     }
 })()
 
+
+
 async function rumbleElements(req, res) {
     let element = ""
     try {
-        const tokenA = Math.floor(Math.random() * 64)
-        const tokenB = Math.floor(Math.random() * 64)
+        const tokenA = Math.floor(Math.random() * (64 - 1 + 1)) + 1   // Math.floor(Math.random() * 64)
+        const tokenB = Math.floor(Math.random() * (64 - 1 + 1)) + 1
         
         function checkElement(token) {
             if (token >= 1 && token <= 10) {
@@ -115,12 +117,88 @@ async function rumbleElements(req, res) {
         
         const elementA = checkElement(tokenA) 
         const elementB = checkElement(tokenB)
-        console.log("Token A: " + tokenA + " element: " + elementA)
-        console.log("Token B: " + tokenB + " element: " + elementB + "\n")
+
+        console.log("\nToken A: " + tokenA + "------> element: " + elementA)
+        console.log("Token B: " + tokenB + "------> element: " + elementB + "\n")
+        
+        // ==================== get each element's value ================
+
+        // function getValue(element1, element2) {
+        //     const getData = AdvantageChart.find({ element_name: element1, check_element: { $elemMatch: { name: element2 } } },
+        //         { "check_element.$": 1, "element_name": 1 }) // $ (projection)
+        //     return getData
+        //     // return res.status(HTTP.SUCCESS).send({ 'status': true, 'code': HTTP.SUCCESS, 'message': 'generated token: ', 'data': getData })     
+    
+        //     // let elementCheck =[]
+        //     // for (var item of getData) {
+        //     //     elementCheck = item.check_element
+        //     // }
+        //     // let val = 0
+        //     // for (const item of elementCheck) {
+        //     //     val = item.value
+        //     // } 
+        //     // return val
+        // }
+        
+        // let val_A = getValue(elementA, elementB)
+        // let val_B = getValue(elementB, elementA)
         
         const getA = await AdvantageChart.find({ element_name: elementA, check_element: { $elemMatch: { name: elementB } } },
         { "check_element.$": 1 , "element_name" : 1}) // $ (projection)
         
+        let elementcheck =[]
+        for (var item of getA) {
+            elementcheck = item.check_element
+        }
+        let val_A = 0
+        for (const item of elementcheck) {
+            val_A = item.value
+        }
+
+        // check the 2nd element's value from db
+        const getB = await AdvantageChart.find({ element_name: elementB, check_element: { $elemMatch: { name: elementA } } },
+            { "check_element.$": 1 , "element_name" : 1}) // $ (projection)
+        let elementCheck =[]
+        for (var item of getB) {
+            elementCheck = item.check_element
+        }
+        let val_B = 0
+        for (const item of elementCheck) {
+            val_B = item.value
+        }
+        
+        console.log("value A: " + val_A  )
+        console.log("value B: " + val_B + "\n" )
+        if (val_A == 0) return res.status(HTTP.SUCCESS).send({ 'status': true, 'code': HTTP.SUCCESS, 'message': ' value got is 0 ', 'data': {} })
+        
+        // Attack power = Elemental Power + (- 20% to +20 % type advantage) + (0 to 3000 Random roll)
+        // Fire elemental Attack power = (8900+ (-10%) + 1965) = 9975
+        // Earth elemental attack power = (7600 + (+10%) + 2439) = 10799
+        // Earth elemental Wins!
+        
+        function attackPower(token, val) {
+            let randomRoll = Math.floor(Math.random() * 3000) // 0 - 3000
+            let calc = token + (val / 100) + randomRoll
+            return calc
+        }
+
+        let elementalAttack_A = attackPower(tokenA, val_A)
+        let elementalAttack_B = attackPower(tokenA, val_B)
+
+        console.log(elementA + " Attack Power: " + elementalAttack_A)
+        console.log(elementB + " Attack Power: " + elementalAttack_B + "\n")
+
+        function addWinner(element, token) {
+            
+        }
+
+        if (elementalAttack_A > elementalAttack_B) {
+            addWinner(elementA, tokenA)
+            console.log(elementA + " elemental Wins!")
+        } else {
+            addWinner(elementB, tokenB)
+            console.log(elementB + " elemental Wins!")
+        }
 
         return res.status(HTTP.SUCCESS).send({ 'status': true, 'code': HTTP.SUCCESS, 'message': 'generated token: ', 'data': getA })     
 
