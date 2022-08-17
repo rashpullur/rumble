@@ -100,6 +100,15 @@ const manageControllers = require('./manage.controller');
 async function rumbleElements(req, res) {
     let element = ""
     try {
+        // count lostElements
+        // const lostData = await LostElement.aggregate([
+        //     { $project: { resultSize: { $size: "$elemental_id" } } }])
+        // let lostCount = 0
+        // for (const item of lostData) {
+        //     lostCount += item.resultSize
+        // }
+        // return res.status(HTTP.SUCCESS).send({ 'status': true, 'code': HTTP.SUCCESS, 'message': 'lost element count', 'data': 'The total elements is: ' + lostCount })
+        
         const tokenA = Math.floor(Math.random() * (64 - 1 + 1)) + 1   // Math.floor(Math.random() * 64)
         const tokenB = Math.floor(Math.random() * (64 - 1 + 1)) + 1
         
@@ -223,6 +232,8 @@ async function rumbleElements(req, res) {
             const lost = manageControllers.addLoser(elementB, tokenB)
             if(!lost) return res.status(HTTP.SUCCESS).send({ "status": false, 'code': HTTP.BAD_REQUEST, "message": "could not add loser", data: {} })
 
+
+            
             return res.status(HTTP.SUCCESS).send({ 'status': true, 'code': HTTP.SUCCESS, 'message': 'Added Winner', 'data': getA })
             
 
@@ -247,6 +258,7 @@ async function rumbleElements(req, res) {
             const lost = manageControllers.addLoser(elementA, tokenA)
             if (!lost) return res.status(HTTP.SUCCESS).send({ "status": false, 'code': HTTP.BAD_REQUEST, "message": "could not add loser", data: {} })
             
+        
             return res.status(HTTP.SUCCESS).send({ 'status': true, 'code': HTTP.SUCCESS, 'message': 'Added Winner', 'data': getB })
             
             // addWinner(elementB, tokenB)
@@ -272,6 +284,29 @@ async function rumbleElements(req, res) {
     }
 }
 
+async function roundTwo() {
+    try {
+        const lostData = await LostElement.aggregate([
+                { $project: { resultSize: { $size: "$elemental_id" } } }])
+        let lostCount = 0
+        for (const item of lostData) {
+            lostCount += item.resultSize
+        }
+        const winData = await LostElement.aggregate([
+            { $project: { resultSize: { $size: "$elemental_id" } } }])
+        let winCount = 0
+        for (const item of winData) {
+            winCount += item.resultSize
+        }
+
+
+        
+    } catch (error) {
+        
+    }
+}
+
 module.exports = {
-    rumbleElements
+    rumbleElements,
+    roundTwo
 }

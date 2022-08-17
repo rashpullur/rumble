@@ -6,20 +6,10 @@ const HTTP = require("../constants/responseCode.constant");
 
 async function addWinner(element, token) {
     try {
-        const elementExist = await WonElement.findOne({ element_name: element })
-        // const lostExist = await LostElement.findOne({ elemental_id: token }) 
-        // const wonExist = await WonElement.findOne({ elemental_id: token })
-        // if (lostExist || wonExist ) {
-        //     console.log("element already in database!!!")
-        //     return
-        // } 
-        
-        
+        const elementExist = await WonElement.findOne({ element_name: element })    
         
         if (elementExist) {
             if ((element == 'plant' || element == 'lightening') && (elementExist.elemental_id.length <= 5)) {
-
-                console.log("length:  " + elementExist.elemental_id.length)
 
                 for (const item of elementExist.elemental_id) {
                    if (item == token) return "item added!"
@@ -31,7 +21,6 @@ async function addWinner(element, token) {
                 return update
             } else if (!(element == 'plant' || element == 'lightening') && (elementExist.elemental_id.length <= 4)) {
 
-                console.log("length:  " + elementExist.elemental_id.length)
 
                 for (const item of elementExist.elemental_id) {
                     if (item == token)  return "item added!"
@@ -58,18 +47,10 @@ async function addWinner(element, token) {
 async function addLoser(element, token) {
     try {
         const elementExist = await LostElement.findOne({ element_name: element })
-        // const lostExist = await LostElement.findOne({ elemental_id: token })
-        // const wonExist = await WonElement.findOne({ elemental_id: token })
-        // if (wonExist || lostExist) {
-        //     console.log("element already in database!!!")
-        //     return
-        // } 
-
-        
+       
         if (elementExist ) {
             if ((element == 'plant' || element == 'lightening') && (elementExist.elemental_id.length <= 5)) {
 
-                console.log("length:  " + elementExist.elemental_id.length)
 
                 for (const item of elementExist.elemental_id) {
                    if (item == token) return "id already added!"
@@ -81,7 +62,6 @@ async function addLoser(element, token) {
                 return update
             } else if (!(element == 'plant' || element == 'lightening') && (elementExist.elemental_id.length <= 4)) {
 
-                console.log("length:  " + elementExist.elemental_id.length)
 
                 for (const item of elementExist.elemental_id) {
                     if (item == token)  return "item added!"
