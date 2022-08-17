@@ -1,6 +1,7 @@
 const AdvantageChart = require('../model/chart.model')
 const WonElement = require('../model/wonElement.model')
 const LostElement = require('../model/lostElement.model')
+const EliminatedElement = require('../model/eliminatedElement.model')
 const HTTP = require("../constants/responseCode.constant")
 const manageControllers = require('./manage.controller');
 
@@ -97,21 +98,186 @@ const manageControllers = require('./manage.controller');
     }
 })()
 
-async function rumbleElements(req, res) {
+async function roundOne(req, res) {
     let element = ""
     try {
-        // count lostElements
-        // const lostData = await LostElement.aggregate([
-        //     { $project: { resultSize: { $size: "$elemental_id" } } }])
-        // let lostCount = 0
-        // for (const item of lostData) {
-        //     lostCount += item.resultSize
-        // }
-        // return res.status(HTTP.SUCCESS).send({ 'status': true, 'code': HTTP.SUCCESS, 'message': 'lost element count', 'data': 'The total elements is: ' + lostCount })
+        // count lost and won elements
+        const lostData = await LostElement.aggregate([
+            { $project: { resultSize: { $size: "$elemental_id" } } }])
+        let lostCount = 0
+        for (const item of lostData) {
+            lostCount += item.resultSize
+        }
+        const winData = await LostElement.aggregate([
+            { $project: { resultSize: { $size: "$elemental_id" } } }])
+        let winCount = 0
+        for (const item of winData) {
+            winCount += item.resultSize
+        }
+
+        if (lostCount < 32 && winCount < 32) {
+
+            const tokenA = Math.floor(Math.random() * (64 - 1 + 1)) + 1   // Math.floor(Math.random() * 64)
+            const tokenB = Math.floor(Math.random() * (64 - 1 + 1)) + 1
+            
+            function checkElement(token) {
+                if (token >= 1 && token <= 10) {
+                    element = "fire"
+                } else if (token >= 11 && token <= 20) {
+                    element = "water"
+                } else if (token >= 21 && token <= 30) {
+                    element = "air"
+                } else if (token >= 31 && token <= 40) {
+                    element = "earth"
+                } else if (token >= 41 && token <= 52) {
+                    element = "plant"
+                } else if (token >= 53 && token <= 64) {
+                    element = "lightening"
+                } else {
+                    element = "not between 1 to 64"
+                }
+                return element
+            }
+            
+            const elementA = checkElement(tokenA) 
+            const elementB = checkElement(tokenB)
+
+            console.log("\nToken A: " + tokenA + "------> element: " + elementA)
+            console.log("Token B: " + tokenB + "------> element: " + elementB + "\n")
+            
+            const lostExist = await LostElement.findOne({ $or: [{ elemental_id: tokenA }, { elemental_id: tokenB }] }) 
+            const wonExist = await WonElement.findOne({ $or: [{ elemental_id: tokenA }, { elemental_id: tokenB }] })
+            if (lostExist || wonExist ) {
+                console.log("element already in database!!!")
+                return res.status(HTTP.SUCCESS).send({ 'status': true, 'code': HTTP.SUCCESS, 'message': ' element already in db! ', 'data': tokenA + " : " + elementA + "    " + tokenB + " : " + elementB })
+            } 
+           
         
-        const tokenA = Math.floor(Math.random() * (64 - 1 + 1)) + 1   // Math.floor(Math.random() * 64)
+            const getA = await AdvantageChart.find({ element_name: elementA, check_element: { $elemMatch: { name: elementB } } },
+                { "check_element.$": 1, "element_name": 1 }) // $ (projection)
+        
+            let elementcheck = []
+            for (var item of getA) {
+                elementcheck = item.check_element
+            }
+            let val_A = 0
+            for (const item of elementcheck) {
+                val_A = item.value
+            }
+
+            // check the 2nd element's value from db
+            const getB = await AdvantageChart.find({ element_name: elementB, check_element: { $elemMatch: { name: elementA } } },
+                { "check_element.$": 1, "element_name": 1 }) // $ (projection)
+            let elementCheck = []
+            for (var item of getB) {
+                elementCheck = item.check_element
+            }
+            let val_B = 0
+            for (const item of elementCheck) {
+                val_B = item.value
+            }
+        
+            console.log("value A: " + val_A)
+            console.log("value B: " + val_B + "\n")
+            if (val_A == 0) return res.status(HTTP.SUCCESS).send({ 'status': true, 'code': HTTP.SUCCESS, 'message': ' value got is 0 ', 'data': {} })
+        
+            // Attack power = Elemental Power + (- 20% to +20 % type advantage) + (0 to 3000 Random roll)
+            // Fire elemental Attack power = (8900+ (-10%) + 1965) = 9975
+            // Earth elemental attack power = (7600 + (+10%) + 2439) = 10799
+            // Earth elemental Wins!
+        
+            function attackPower(token, val) {
+                let randomRoll = Math.floor(Math.random() * 3000) // 0 - 3000
+                let calc = token + (val / 100) + randomRoll
+                return calc
+            }
+
+            let elementalAttack_A = attackPower(tokenA, val_A)
+            let elementalAttack_B = attackPower(tokenA, val_B)
+
+            console.log(elementA + " Attack Power: " + elementalAttack_A)
+            console.log(elementB + " Attack Power: " + elementalAttack_B + "\n")
+
+            // declare array length for won and lost element here being 5,5,5,5,6,6
+            const length = 4 // 0-4 = 5
+            const lengthLast = 5 // 0-5 = 6
+        
+            if (elementalAttack_A > elementalAttack_B) {
+                console.log(elementA + " elemental Wins!")
+                const winner = manageControllers.addWinner(elementA, tokenA, length, lengthLast)
+                if (!winner) return res.status(HTTP.SUCCESS).send({ "status": false, 'code': HTTP.BAD_REQUEST, "message": "could not add winner", data: {} })
+            
+                const lost = manageControllers.addLoser(elementB, tokenB, length, lengthLast)
+                if (!lost) return res.status(HTTP.SUCCESS).send({ "status": false, 'code': HTTP.BAD_REQUEST, "message": "could not add loser", data: {} })
+
+                return res.status(HTTP.SUCCESS).send({ 'status': true, 'code': HTTP.SUCCESS, 'message': 'Added Winner', 'data': getA })
+            
+
+            } else {
+                console.log(elementB + " elemental Wins!")
+                const winner = manageControllers.addWinner(elementB, tokenB, length, lengthLast)
+                if (!winner) return res.status(HTTP.SUCCESS).send({ "status": false, 'code': HTTP.BAD_REQUEST, "message": "could not add winner", data: {} })
+            
+                const lost = manageControllers.addLoser(elementA, tokenA, length, lengthLast)
+                if (!lost) return res.status(HTTP.SUCCESS).send({ "status": false, 'code': HTTP.BAD_REQUEST, "message": "could not add loser", data: {} })
+            
+                return res.status(HTTP.SUCCESS).send({ 'status': true, 'code': HTTP.SUCCESS, 'message': 'Added Winner', 'data': getB })
+
+            }
+        }
+        return res.status(HTTP.SUCCESS).send({ 'status': true, 'code': HTTP.SUCCESS, 'message': ' round one completed! ', 'data': {} })     
+
+    } catch(e) {
+        console.log(e)
+        return res.status(HTTP.SUCCESS).send({ "status": false, 'code': HTTP.INTERNAL_SERVER_ERROR, "message": "Something went wrong!" })
+    }
+}
+
+async function roundTwo(req, res) {
+    try {
+        
+        // count lost and won elements
+        const lostData = await LostElement.aggregate([
+                { $project: { resultSize: { $size: "$elemental_id" } } }])
+        let lostCount = 0
+        for (const item of lostData) {
+            lostCount += item.resultSize
+        }
+        const winData = await WonElement.aggregate([
+            { $project: { resultSize: { $size: "$elemental_id" } } }])
+        let winCount = 0
+        for (const item of winData) {
+            winCount += item.resultSize
+        }
+
+        if (lostCount == 32 && winCount == 32) {
+            // add lost elements to eliminated elements
+            // empty lost elements 
+            
+            var Object=[];
+            await LostElement.find(function (err, data) {
+                if (err) return console.error(err);
+                Object=data;
+                console.log(Object);
+
+                EliminatedElement.insertMany(Object, function(error, docs) {
+                    if (err) return console.error(err);
+                    LostElement.deleteMany( function (err) {});
+                });
+
+            })
+        }
+        
+        // random token generate from the won elements table
+        const tokenA = Math.floor(Math.random() * (64 - 1 + 1)) + 1   
         const tokenB = Math.floor(Math.random() * (64 - 1 + 1)) + 1
+
+        const tokenExist = await WonElement.findOne({ $or: [{ elemental_id: tokenA }, { elemental_id: tokenB }] })
+        if (!tokenExist) return res.status(HTTP.SUCCESS).send({ 'status': true, 'code': HTTP.SUCCESS, 'message': 'Token is eliminated!', 'data': {} })
         
+        
+        // ===== remove lost element from won elements table =====
+        let element = ""
         function checkElement(token) {
             if (token >= 1 && token <= 10) {
                 element = "fire"
@@ -130,46 +296,16 @@ async function rumbleElements(req, res) {
             }
             return element
         }
-        
         const elementA = checkElement(tokenA) 
         const elementB = checkElement(tokenB)
-
-        console.log("\nToken A: " + tokenA + "------> element: " + elementA)
-        console.log("Token B: " + tokenB + "------> element: " + elementB + "\n")
         
-        const lostExist = await LostElement.findOne({ $or: [{ elemental_id: tokenA }, { elemental_id: tokenB }] }) 
-        const wonExist = await WonElement.findOne({ $or: [{ elemental_id: tokenA }, { elemental_id: tokenB }] })
-        if (lostExist || wonExist ) {
-            console.log("element already in database!!!")
-            return res.status(HTTP.SUCCESS).send({ 'status': true, 'code': HTTP.SUCCESS, 'message': ' element already in db! ', 'data': tokenA + " : " + elementA + "    " + tokenB + " : " + elementB })
-        } 
-
-        // ==================== get each element's value ================
-
-        // function getValue(element1, element2) {
-        //     const getData = AdvantageChart.find({ element_name: element1, check_element: { $elemMatch: { name: element2 } } },
-        //         { "check_element.$": 1, "element_name": 1 }) // $ (projection)
-        //     return getData
-        //     // return res.status(HTTP.SUCCESS).send({ 'status': true, 'code': HTTP.SUCCESS, 'message': 'generated token: ', 'data': getData })     
-    
-        //     // let elementCheck =[]
-        //     // for (var item of getData) {
-        //     //     elementCheck = item.check_element
-        //     // }
-        //     // let val = 0
-        //     // for (const item of elementCheck) {
-        //     //     val = item.value
-        //     // } 
-        //     // return val
-        // }
-        
-        // let val_A = getValue(elementA, elementB)
-        // let val_B = getValue(elementB, elementA)
+        console.log("A element : " + elementA + "  token: " + tokenA)
+        console.log("B element : " + elementB + "  token: " + tokenB)
         
         const getA = await AdvantageChart.find({ element_name: elementA, check_element: { $elemMatch: { name: elementB } } },
-        { "check_element.$": 1 , "element_name" : 1}) // $ (projection)
-        
-        let elementcheck =[]
+            { "check_element.$": 1, "element_name": 1 }) // $ (projection)
+            
+        let elementcheck = []
         for (var item of getA) {
             elementcheck = item.check_element
         }
@@ -177,11 +313,11 @@ async function rumbleElements(req, res) {
         for (const item of elementcheck) {
             val_A = item.value
         }
-
+        
         // check the 2nd element's value from db
         const getB = await AdvantageChart.find({ element_name: elementB, check_element: { $elemMatch: { name: elementA } } },
-            { "check_element.$": 1 , "element_name" : 1}) // $ (projection)
-        let elementCheck =[]
+            { "check_element.$": 1, "element_name": 1 }) // $ (projection)
+        let elementCheck = []
         for (var item of getB) {
             elementCheck = item.check_element
         }
@@ -189,9 +325,10 @@ async function rumbleElements(req, res) {
         for (const item of elementCheck) {
             val_B = item.value
         }
-        
-        console.log("value A: " + val_A  )
-        console.log("value B: " + val_B + "\n" )
+    
+        console.log("\n" + elementA + " value A: " + val_A)
+        console.log(elementB + " value B: " + val_B + "\n")
+
         if (val_A == 0) return res.status(HTTP.SUCCESS).send({ 'status': true, 'code': HTTP.SUCCESS, 'message': ' value got is 0 ', 'data': {} })
         
         // Attack power = Elemental Power + (- 20% to +20 % type advantage) + (0 to 3000 Random roll)
@@ -201,112 +338,52 @@ async function rumbleElements(req, res) {
         
         function attackPower(token, val) {
             let randomRoll = Math.floor(Math.random() * 3000) // 0 - 3000
-            let calc = token + (val / 100) + randomRoll
-            return calc
+            return token + (val / 100) + randomRoll    
         }
-
+        
         let elementalAttack_A = attackPower(tokenA, val_A)
         let elementalAttack_B = attackPower(tokenA, val_B)
-
+        
         console.log(elementA + " Attack Power: " + elementalAttack_A)
         console.log(elementB + " Attack Power: " + elementalAttack_B + "\n")
-
-        // function addWinner(element, token) {
-        //     const elementExist = WonElement.findOne({ element_name: element })
-        //     if (elementExist) {
-        //         const update = WonElement.findOneAndUpdate({ element_name: element }, { "$push": { elemental_id: token } }, { new: true })   
-        //         if(!update) return res.status(HTTP.SUCCESS).send({ "status": false, 'code': HTTP.BAD_REQUEST, "message": "Could not add winner!" })
-        //         return res.status(HTTP.SUCCESS).send({ 'status': true, 'code': HTTP.SUCCESS, 'message': 'Added Winner', 'data': update }) 
-        //     } else {
-        //         const addData = new WonElement({ element_name: element, elemental_id: token }).save()
-        //         if (!addData) return res.status(HTTP.SUCCESS).send({ "status": false, 'code': HTTP.BAD_REQUEST, "message": "Could not add winner!" })
-        //         return res.status(HTTP.SUCCESS).send({ 'status': true, 'code': HTTP.SUCCESS, 'message': 'Added Winner', 'data': addData }) 
-        //     }
-        // }
+        
+        // decrease won elements and lost elements array length : here being: 2,2,2,2,4,4
+        const lengthLast = 3 // 0-3 = 4
+        const length = 1 // 0-1 = 2
+        
         
         if (elementalAttack_A > elementalAttack_B) {
             console.log(elementA + " elemental Wins!")
-            const winner = manageControllers.addWinner(elementA, tokenA)
-            if(!winner) return res.status(HTTP.SUCCESS).send({ "status": false, 'code': HTTP.BAD_REQUEST, "message": "could not add winner", data: {} })
-            
-            const lost = manageControllers.addLoser(elementB, tokenB)
-            if(!lost) return res.status(HTTP.SUCCESS).send({ "status": false, 'code': HTTP.BAD_REQUEST, "message": "could not add loser", data: {} })
+        
+            const lost = manageControllers.addLoser(elementB, tokenB, length, lengthLast)
+            if (!lost) return res.status(HTTP.SUCCESS).send({ "status": false, 'code': HTTP.BAD_REQUEST, "message": "could not add loser", data: {} })
 
+            // remove the lost winner
 
-            
             return res.status(HTTP.SUCCESS).send({ 'status': true, 'code': HTTP.SUCCESS, 'message': 'Added Winner', 'data': getA })
-            
-
-            // addWinner(elementA, tokenA)
-
-            // const elementExist = await WonElement.findOne({ element_name: elementA })
-            // if (elementExist) {
-            //     const update = await WonElement.findOneAndUpdate({ element_name: elementA }, { "$push": { elemental_id: tokenA } }, { new: true })   
-            //     if(!update) return res.status(HTTP.SUCCESS).send({ "status": false, 'code': HTTP.BAD_REQUEST, "message": "Could not add winner!" })
-            //     return res.status(HTTP.SUCCESS).send({ 'status': true, 'code': HTTP.SUCCESS, 'message': 'Added Winner', 'data': update }) 
-            // } else {
-            //     const addData = await new WonElement({ element_name: elementA, elemental_id: tokenA }).save()
-            //     if (!addData) return res.status(HTTP.SUCCESS).send({ "status": false, 'code': HTTP.BAD_REQUEST, "message": "Could not add winner!" })
-            //     return res.status(HTTP.SUCCESS).send({ 'status': true, 'code': HTTP.SUCCESS, 'message': 'Added Winner', 'data': addData }) 
-            // }
+        
 
         } else {
             console.log(elementB + " elemental Wins!")
-            const winner = manageControllers.addWinner(elementB, tokenB)
-            if(!winner) return res.status(HTTP.SUCCESS).send({ "status": false, 'code': HTTP.BAD_REQUEST, "message": "could not add winner", data: {} })
-            
-            const lost = manageControllers.addLoser(elementA, tokenA)
+            const winner = manageControllers.addWinner(elementB, tokenB, length, lengthLast)
+            if (!winner) return res.status(HTTP.SUCCESS).send({ "status": false, 'code': HTTP.BAD_REQUEST, "message": "could not add winner", data: {} })
+        
+            const lost = manageControllers.addLoser(elementA, tokenA, length, lengthLast)
             if (!lost) return res.status(HTTP.SUCCESS).send({ "status": false, 'code': HTTP.BAD_REQUEST, "message": "could not add loser", data: {} })
-            
         
             return res.status(HTTP.SUCCESS).send({ 'status': true, 'code': HTTP.SUCCESS, 'message': 'Added Winner', 'data': getB })
-            
-            // addWinner(elementB, tokenB)
-
-            // const elementExist = await WonElement.findOne({ element_name: elementB })
-            // if (elementExist) {
-            //     const update = await WonElement.findOneAndUpdate({ element_name: elementB }, { "$push": { elemental_id: tokenB } }, { new: true })   
-            //     if(!update) return res.status(HTTP.SUCCESS).send({ "status": false, 'code': HTTP.BAD_REQUEST, "message": "Could not add winner!" })
-            //     return res.status(HTTP.SUCCESS).send({ 'status': true, 'code': HTTP.SUCCESS, 'message': 'Added Winner', 'data': update }) 
-            // } else {
-            //     const addData = await new WonElement({ element_name: elementB, elemental_id: tokenB }).save()
-            //     if (!addData) return res.status(HTTP.SUCCESS).send({ "status": false, 'code': HTTP.BAD_REQUEST, "message": "Could not add winner!" })
-            //     return res.status(HTTP.SUCCESS).send({ 'status': true, 'code': HTTP.SUCCESS, 'message': 'Added Winner', 'data': addData }) 
-            // }
 
         }
 
-        return res.status(HTTP.SUCCESS).send({ 'status': true, 'code': HTTP.SUCCESS, 'message': 'generated token: ', 'data': getA })     
 
-    } catch(e) {
+        return res.status(HTTP.SUCCESS).send({ 'status': true, 'code': HTTP.SUCCESS, 'message': ' round two ', 'data': "Token A: " + tokenA + " Token B: " + tokenB })
+    } catch (e) {
         console.log(e)
-        return res.status(HTTP.SUCCESS).send({ "status": false, 'code': HTTP.INTERNAL_SERVER_ERROR, "message": "Something went wrong!" })
-    }
-}
-
-async function roundTwo() {
-    try {
-        const lostData = await LostElement.aggregate([
-                { $project: { resultSize: { $size: "$elemental_id" } } }])
-        let lostCount = 0
-        for (const item of lostData) {
-            lostCount += item.resultSize
-        }
-        const winData = await LostElement.aggregate([
-            { $project: { resultSize: { $size: "$elemental_id" } } }])
-        let winCount = 0
-        for (const item of winData) {
-            winCount += item.resultSize
-        }
-
-
-        
-    } catch (error) {
-        
+        return res.status(HTTP.SUCCESS).send({ "status": false, 'code': HTTP.INTERNAL_SERVER_ERROR, "message": "Something went wrong!" })  
     }
 }
 
 module.exports = {
-    rumbleElements,
+    roundOne,
     roundTwo
 }

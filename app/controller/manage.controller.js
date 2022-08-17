@@ -4,12 +4,12 @@ const LostElement = require('../model/lostElement.model')
 const HTTP = require("../constants/responseCode.constant");
 
 
-async function addWinner(element, token) {
+async function addWinner(element, token, length, lengthLast) {
     try {
         const elementExist = await WonElement.findOne({ element_name: element })    
         
         if (elementExist) {
-            if ((element == 'plant' || element == 'lightening') && (elementExist.elemental_id.length <= 5)) {
+            if ((element == 'plant' || element == 'lightening') && (elementExist.elemental_id.length <= lengthLast)) {
 
                 for (const item of elementExist.elemental_id) {
                    if (item == token) return "item added!"
@@ -19,7 +19,7 @@ async function addWinner(element, token) {
                 if (!update) return console.log("couldnt update winner!")
                 
                 return update
-            } else if (!(element == 'plant' || element == 'lightening') && (elementExist.elemental_id.length <= 4)) {
+            } else if (!(element == 'plant' || element == 'lightening') && (elementExist.elemental_id.length <= length)) {
 
 
                 for (const item of elementExist.elemental_id) {
@@ -44,12 +44,12 @@ async function addWinner(element, token) {
     }
 }
 
-async function addLoser(element, token) {
+async function addLoser(element, token, length, lengthLast) {
     try {
         const elementExist = await LostElement.findOne({ element_name: element })
        
         if (elementExist ) {
-            if ((element == 'plant' || element == 'lightening') && (elementExist.elemental_id.length <= 5)) {
+            if ((element == 'plant' || element == 'lightening') && (elementExist.elemental_id.length <= lengthLast)) {
 
 
                 for (const item of elementExist.elemental_id) {
@@ -60,7 +60,7 @@ async function addLoser(element, token) {
                 if (!update) return console.log("couldnt update winner!")
                 
                 return update
-            } else if (!(element == 'plant' || element == 'lightening') && (elementExist.elemental_id.length <= 4)) {
+            } else if (!(element == 'plant' || element == 'lightening') && (elementExist.elemental_id.length <= length)) {
 
 
                 for (const item of elementExist.elemental_id) {
@@ -86,7 +86,20 @@ async function addLoser(element, token) {
     }
 }
 
+async function removeFromWinner(element, token, length, lengthLast) {
+    try {
+        const elementExist = await WonElement.findOne({ element_name: element })    
+        if (elementExist) {
+            
+        }
+
+    } catch(e) {
+        console.log(e)
+    }
+}
+
 module.exports = {
     addWinner,
-    addLoser
+    addLoser,
+    removeFromWinner
 }
