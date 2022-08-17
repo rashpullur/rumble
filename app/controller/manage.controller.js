@@ -7,13 +7,16 @@ const HTTP = require("../constants/responseCode.constant");
 async function addWinner(element, token) {
     try {
         const elementExist = await WonElement.findOne({ element_name: element })
-        const lostExist = await LostElement.findOne({ elemental_id: token }) 
-        if (lostExist) {
-            console.log("element already in lost data!!!")
-            return
-        } 
+        // const lostExist = await LostElement.findOne({ elemental_id: token }) 
+        // const wonExist = await WonElement.findOne({ elemental_id: token })
+        // if (lostExist || wonExist ) {
+        //     console.log("element already in database!!!")
+        //     return
+        // } 
         
-        if (elementExist && !lostExist) {
+        
+        
+        if (elementExist) {
             if ((element == 'plant' || element == 'lightening') && (elementExist.elemental_id.length <= 5)) {
 
                 console.log("length:  " + elementExist.elemental_id.length)
@@ -55,14 +58,15 @@ async function addWinner(element, token) {
 async function addLoser(element, token) {
     try {
         const elementExist = await LostElement.findOne({ element_name: element })
-        const wonExist = await WonElement.findOne({ elemental_id: token })
-        if (wonExist) {
-            console.log("element already in won data!!!")
-            return
-        } 
+        // const lostExist = await LostElement.findOne({ elemental_id: token })
+        // const wonExist = await WonElement.findOne({ elemental_id: token })
+        // if (wonExist || lostExist) {
+        //     console.log("element already in database!!!")
+        //     return
+        // } 
 
         
-        if (elementExist && !wonExist) {
+        if (elementExist ) {
             if ((element == 'plant' || element == 'lightening') && (elementExist.elemental_id.length <= 5)) {
 
                 console.log("length:  " + elementExist.elemental_id.length)

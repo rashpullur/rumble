@@ -1,5 +1,6 @@
 const AdvantageChart = require('../model/chart.model')
 const WonElement = require('../model/wonElement.model')
+const LostElement = require('../model/lostElement.model')
 const HTTP = require("../constants/responseCode.constant")
 const manageControllers = require('./manage.controller');
 
@@ -127,6 +128,13 @@ async function rumbleElements(req, res) {
         console.log("\nToken A: " + tokenA + "------> element: " + elementA)
         console.log("Token B: " + tokenB + "------> element: " + elementB + "\n")
         
+        const lostExist = await LostElement.findOne({ $or: [{ elemental_id: tokenA }, { elemental_id: tokenB }] }) 
+        const wonExist = await WonElement.findOne({ $or: [{ elemental_id: tokenA }, { elemental_id: tokenB }] })
+        if (lostExist || wonExist ) {
+            console.log("element already in database!!!")
+            return res.status(HTTP.SUCCESS).send({ 'status': true, 'code': HTTP.SUCCESS, 'message': ' element already in db! ', 'data': tokenA + " : " + elementA + "    " + tokenB + " : " + elementB })
+        } 
+
         // ==================== get each element's value ================
 
         // function getValue(element1, element2) {
