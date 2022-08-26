@@ -782,7 +782,7 @@ async function generateExcel(req, res) {
 module.exports = {
     rumbleElements,
     rumbleNfts,
-    generateExcel
+    generateExcel,
 
     roundOne,
     roundTwo
