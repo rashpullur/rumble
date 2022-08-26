@@ -13,7 +13,10 @@ const advantageChart = new Schema({
         value: {
             type: Number
         }
-    }]
+    }],
+    elemental_power: {
+        type: Array
+    }
 }, { timestamps: true, versionKey: false })
 
 module.exports = mongoose.model('AdvantageChart', advantageChart)

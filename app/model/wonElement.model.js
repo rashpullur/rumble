@@ -6,14 +6,9 @@ const wonElement = new Schema({
         type: String,
         required: true
     },
-    check_element: [{
-        name: {
-            type: String
-        },
-        value: {
-            type: Number
-        }
-    }]
+    elemental_id: {
+        type: Array
+    }
 }, { timestamps: true, versionKey: false })
 
 module.exports = mongoose.model('WonElement', wonElement)
