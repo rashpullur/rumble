@@ -2,7 +2,7 @@ const mongoose = require('mongoose')
 
 function mongoConnect() {
     // Database connection
-    mongoose.connect("mongodb://localhost:27017/rumble-api", { 
+    mongoose.connect(process.env.MONGODB, {
         useNewUrlParser: true,
         useUnifiedTopology: true
     }).then(() => console.log("DB connection successful!"))
