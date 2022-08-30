@@ -7,7 +7,7 @@ const NftBattel = require('../model/nftBattel.model')
 const HTTP = require("../constants/responseCode.constant");
 const excel = require('exceljs');
 const { genrateRandomNumber, calculateRarityBoost, curWinnerAndLooser } = require('../utils/helper');
-
+const nftTokensData = require('../utils/nftTokensData')
 
 const WonElement = require('../model/wonElement.model')
 const LostElement = require('../model/lostElement.model')
@@ -28,8 +28,23 @@ const manageControllers = require('./manage.controller');
                 for (let nftNo = 1; nftNo <= 10; nftNo++) {
                     const elementalPower = genrateRandomNumber(6000, 10000)
                     const rarityBoost = calculateRarityBoost(elementalPower)
+                    
+                    // adding nft data ======
+                    const owner_wallet = nftTokensData[nftNumber - 1].owner_wallet
+                    const associated_token_address = nftTokensData[nftNumber - 1].associated_token_address
+                    const mint_account = nftTokensData[nftNumber - 1].mint_account
+                    const metadata_account = nftTokensData[nftNumber - 1].metadata_account
 
-                    defaultNftList.push({ nftNumber, nftType: nft, elementalPower, rarityBoost });
+                    // array of object ======
+                    const nftToken = {
+                        owner_wallet,
+                        associated_token_address,
+                        mint_account,
+                        metadata_account
+                    }
+                    defaultNftList.push({ nftNumber, nftToken, nftType: nft, elementalPower, rarityBoost });
+
+                    // defaultNftList.push({ nftNumber, owner_wallet, associated_token_address, mint_account, metadata_account, nftType: nft, elementalPower, rarityBoost });
                     nftNumber++
                 }
             } else if (['plant', 'lightening'].includes(nft)) {
@@ -37,7 +52,24 @@ const manageControllers = require('./manage.controller');
                     const elementalPower = genrateRandomNumber(6000, 10000)
                     const rarityBoost = calculateRarityBoost(elementalPower)
 
-                    defaultNftList.push({ nftNumber, nftType: nft, elementalPower, rarityBoost });
+                    // adding nft data
+                    const owner_wallet = nftTokensData[nftNumber - 1].owner_wallet
+                    const associated_token_address = nftTokensData[nftNumber - 1].associated_token_address
+                    const mint_account = nftTokensData[nftNumber - 1].mint_account
+                    const metadata_account = nftTokensData[nftNumber - 1].metadata_account
+
+                    // array of object ======
+                    const nftToken = {
+                        owner_wallet,
+                        associated_token_address,
+                        mint_account,
+                        metadata_account
+                    }
+                    defaultNftList.push({ nftNumber, nftToken, nftType: nft, elementalPower, rarityBoost });
+
+                    // defaultNftList.push({ nftNumber, owner_wallet, associated_token_address, mint_account, metadata_account, nftType: nft, elementalPower, rarityBoost });
+
+                    // defaultNftList.push({ nftNumber, nftType: nft, elementalPower, rarityBoost });
                     nftNumber++
                 }
             }
@@ -46,7 +78,11 @@ const manageControllers = require('./manage.controller');
         if (defaultNftList.length === 0) return
 
         for (const data of defaultNftList) {
-            const nftDataExists = await Nft.findOne({ nftNumber: data.nftNumber, nftType: data.nftType })
+            const nftDataExists = await Nft.findOne({ nftNumber: data.nftNumber, nftToken: data.nftToken, nftType: data.nftType })
+
+            // const nftDataExists = await Nft.findOne({ nftNumber: data.nftNumber, owner_wallet: data.owner_wallet, associated_token_address: data.associated_token_address, mint_account: data.mint_account, metadata_account: data.metadata_account,  nftType: data.nftType })
+
+            // const nftDataExists = await Nft.findOne({ nftNumber: data.nftNumber, nftType: data.nftType })
             if (nftDataExists) continue
 
             const nftData = await Nft(data).save()
@@ -461,6 +497,8 @@ async function roundTwo(req, res) {
     }
 }
 
+// ======================================================================================
+
 async function rumbleNfts(req, res) {
     try {
         const { roundNumber } = req.body
@@ -487,7 +525,7 @@ async function rumbleNfts(req, res) {
 
             if (roundNumber === 1) {
                 const usedNftIdsOfCurRound = await curWinnerAndLooser(roundNumber)
-                availableNft = await Nft.find({ _id: { $nin: usedNftIdsOfCurRound } }, { nftNumber: 1, nftType: 1, elementalPower: 1, rarityBoost: 1 })
+                availableNft = await Nft.find({ _id: { $nin: usedNftIdsOfCurRound } }, { nftNumber: 1, nftToken: 1, nftType: 1, elementalPower: 1, rarityBoost: 1 }) // added nftToken here <----------------------------
             } else {
                 let availableNftIds = []
                 let allWinnerNftIds = []
@@ -504,7 +542,7 @@ async function rumbleNfts(req, res) {
                 }
 
                 // availableNft = await Nft.find({ _id: { $in: [...availableNftIds] } }, { nftNumber: 1, nftType: 1, elementalPower: 1 })
-                availableNft = await Nft.find({ _id: { $in: [...availableNftIds] } }, { nftNumber: 1, nftType: 1, elementalPower: 1, rarityBoost: 1 })
+                availableNft = await Nft.find({ _id: { $in: [...availableNftIds] } }, { nftNumber: 1, nftToken: 1, nftType: 1, elementalPower: 1, rarityBoost: 1 }) // added nftToken here <----------------------------
             }
 
             if (availableNft.length === 0) return res.status(HTTP.SUCCESS).send({ 'status': false, 'code': HTTP.BAD_REQUEST, 'message': 'No nfts are available to compare!', 'data': {} })
@@ -539,6 +577,9 @@ async function rumbleNfts(req, res) {
 
                 candidate1 = {
                     nftNumber: winnerNFT.nftNumber,
+                    // nft token added ======
+                    nftToken: winnerNFT.nftToken,
+
                     nftType: winnerNFT.nftType,
                     elementalPower: winnerNFT.elementalPower,
                     percentage: getA.check_element[0].value,
@@ -549,6 +590,9 @@ async function rumbleNfts(req, res) {
 
                 candidate2 = {
                     nftNumber: looserNFT.nftNumber,
+                    // nft token added ======
+                    nftToken: looserNFT.nftToken,
+
                     nftType: looserNFT.nftType,
                     elementalPower: looserNFT.elementalPower,
                     percentage: getB.check_element[0].value,
@@ -564,6 +608,9 @@ async function rumbleNfts(req, res) {
 
                 candidate1 = {
                     nftNumber: winnerNFT.nftNumber,
+                    // nft token added ======
+                    nftToken: winnerNFT.nftToken,
+
                     nftType: winnerNFT.nftType,
                     elementalPower: winnerNFT.elementalPower,
                     percentage: getB.check_element[0].value,
@@ -574,6 +621,9 @@ async function rumbleNfts(req, res) {
 
                 candidate2 = {
                     nftNumber: looserNFT.nftNumber,
+                    // nft token added ======
+                    nftToken: looserNFT.nftToken,
+
                     nftType: looserNFT.nftType,
                     elementalPower: looserNFT.elementalPower,
                     percentage: getA.check_element[0].value,
@@ -626,6 +676,8 @@ async function generateExcel(req, res) {
         //battel wise data
         batteldata.battels.forEach((battel) => {
             const { candidate1, candidate2 } = battel
+            
+
             xmlData.push({
                 roundName: batteldata.roundNumber ? batteldata.roundNumber : null,
 
@@ -636,6 +688,12 @@ async function generateExcel(req, res) {
                 candidate1RarityBoost: candidate1.rarityBoost ? candidate1.elementalPower * (candidate1.rarityBoost / 100) : 0,
                 candidate1RandomRoll: candidate1.randomRoll ? candidate1.randomRoll : null,
                 candidate1AttackPower: candidate1.attackPower ? candidate1.attackPower : null,
+                
+                // added Token data ======
+                candidate1OwnerWallet: candidate1.nftToken[0].owner_wallet ? candidate1.nftToken[0].owner_wallet : null,
+                candidate1TokenAddress: candidate1.nftToken[0].associated_token_address ? candidate1.nftToken[0].associated_token_address : null,
+                candidate1MintAccount: candidate1.nftToken[0].mint_account ? candidate1.nftToken[0].mint_account : null,
+                candidate1MetadataAccount: candidate1.nftToken[0].metadata_account ? candidate1.nftToken[0].metadata_account : null,
 
                 candidate2Number: candidate2.nftNumber ? candidate2.nftNumber : null,
                 candidate2NftType: candidate2.nftType ? candidate2.nftType : null,
@@ -644,6 +702,12 @@ async function generateExcel(req, res) {
                 candidate2RarityBoost: candidate2.rarityBoost ? candidate2.elementalPower * (candidate2.rarityBoost / 100) : 0,
                 candidate2RandomRoll: candidate2.randomRoll ? candidate2.randomRoll : null,
                 candidate2AttackPower: candidate2.attackPower ? candidate2.attackPower : null,
+                
+                // added Token data ======
+                candidate2OwnerWallet: candidate2.nftToken[0].owner_wallet ? candidate2.nftToken[0].owner_wallet : null,
+                candidate2TokenAddress: candidate2.nftToken[0].associated_token_address ? candidate2.nftToken[0].associated_token_address : null,
+                candidate2MintAccount: candidate2.nftToken[0].mint_account ? candidate2.nftToken[0].mint_account : null,
+                candidate2MetadataAccount: candidate2.nftToken[0].metadata_account ? candidate2.nftToken[0].metadata_account : null,
 
                 winnerNftId: battel.winnerNft ? battel.winnerNft.toString() : null,
                 looserNftId: battel.looserNft ? battel.looserNft.toString() : null,
@@ -657,6 +721,7 @@ async function generateExcel(req, res) {
 
         //attack power wise data
         sortedBattelData = batteldata.battels.sort((a, b) => b.attackPowerDiff - a.attackPowerDiff)
+        
 
         let rank = 1
         sortedBattelData.forEach((battel) => {
@@ -671,6 +736,11 @@ async function generateExcel(req, res) {
                 candidate1RarityBoost: candidate1.rarityBoost ? candidate1.elementalPower * (candidate1.rarityBoost / 100) : 0,
                 candidate1RandomRoll: candidate1.randomRoll ? candidate1.randomRoll : null,
                 candidate1AttackPower: candidate1.attackPower ? candidate1.attackPower : null,
+                // added Token data ======
+                candidate1OwnerWallet: candidate1.nftToken[0].owner_wallet ? candidate1.nftToken[0].owner_wallet : null,
+                candidate1TokenAddress: candidate1.nftToken[0].associated_token_address ? candidate1.nftToken[0].associated_token_address : null,
+                candidate1MintAccount: candidate1.nftToken[0].mint_account ? candidate1.nftToken[0].mint_account : null,
+                candidate1MetadataAccount: candidate1.nftToken[0].metadata_account ? candidate1.nftToken[0].metadata_account : null,
 
                 candidate2Number: candidate2.nftNumber ? candidate2.nftNumber : null,
                 candidate2NftType: candidate2.nftType ? candidate2.nftType : null,
@@ -679,6 +749,11 @@ async function generateExcel(req, res) {
                 candidate2RarityBoost: candidate2.rarityBoost ? candidate2.elementalPower * (candidate2.rarityBoost / 100) : 0,
                 candidate2RandomRoll: candidate2.randomRoll ? candidate2.randomRoll : null,
                 candidate2AttackPower: candidate2.attackPower ? candidate2.attackPower : null,
+                // added Token data ======
+                candidate2OwnerWallet: candidate2.nftToken[0].owner_wallet ? candidate2.nftToken[0].owner_wallet : null,
+                candidate2TokenAddress: candidate2.nftToken[0].associated_token_address ? candidate2.nftToken[0].associated_token_address : null,
+                candidate2MintAccount: candidate2.nftToken[0].mint_account ? candidate2.nftToken[0].mint_account : null,
+                candidate2MetadataAccount: candidate2.nftToken[0].metadata_account ? candidate2.nftToken[0].metadata_account : null,
 
                 winnerNftId: battel.winnerNft ? battel.winnerNft.toString() : null,
                 looserNftId: battel.looserNft ? battel.looserNft.toString() : null,
@@ -709,6 +784,12 @@ async function generateExcel(req, res) {
             { header: "Candidate1 Rarity Boost", key: "candidate1RarityBoost", width: 25 },
             { header: "Candidate1 Random Roll", key: "candidate1RandomRoll", width: 25 },
             { header: "Candidate1 Attack Power", key: "candidate1AttackPower", width: 25 },
+            // added token data =====
+            { header: "Candidate1 Owner Wallet", key: "candidate1OwnerWallet", width: 25 },
+            { header: "Candidate1 Token Address", key: "candidate1TokenAddress", width: 25 },
+            { header: "Candidate1 Mint Account", key: "candidate1MintAccount", width: 25 },
+            { header: "Candidate1 Metadata Account", key: "candidate1MetadataAccount", width: 25 },
+
 
             { header: "Candidate2 Name", key: "candidate2Number", width: 25 },
             { header: "Candidate2 Type", key: "candidate2NftType", width: 25 },
@@ -717,6 +798,11 @@ async function generateExcel(req, res) {
             { header: "Candidate2 Rarity Boost", key: "candidate2RarityBoost", width: 25 },
             { header: "Candidate2 Random Roll", key: "candidate2RandomRoll", width: 25 },
             { header: "Candidate2 Attack Power", key: "candidate2AttackPower", width: 25 },
+            // added token data =====
+            { header: "Candidate2 Owner Wallet", key: "candidate2OwnerWallet", width: 25 },
+            { header: "Candidate2 Token Address", key: "candidate2TokenAddress", width: 25 },
+            { header: "Candidate2 Mint Account", key: "candidate2MintAccount", width: 25 },
+            { header: "Candidate2 Metadata Account", key: "candidate2MetadataAccount", width: 25 },
 
             { header: "Winner Nft ID", key: "winnerNftId", width: 25 },
             { header: "Looser Nft ID", key: "looserNftId", width: 25 },
@@ -736,6 +822,12 @@ async function generateExcel(req, res) {
             { header: "Candidate1 Rercentage", key: "candidate1Percentage", width: 25 },
             { header: "Candidate1 Random Roll", key: "candidate1RandomRoll", width: 25 },
             { header: "Candidate1 Attack Power", key: "candidate1AttackPower", width: 25 },
+            // added token data =====
+            { header: "Candidate1 Owner Wallet", key: "candidate1OwnerWallet", width: 25 },
+            { header: "Candidate1 Token Address", key: "candidate1TokenAddress", width: 25 },
+            { header: "Candidate1 Mint Account", key: "candidate1MintAccount", width: 25 },
+            { header: "Candidate1 Metadata Account", key: "candidate1MetadataAccount", width: 25 },
+
 
             { header: "Candidate2 Name", key: "candidate2Number", width: 25 },
             { header: "Candidate2 Type", key: "candidate2NftType", width: 25 },
@@ -743,6 +835,11 @@ async function generateExcel(req, res) {
             { header: "Candidate2 Percentage", key: "candidate2Percentage", width: 25 },
             { header: "Candidate2 Random Roll", key: "candidate2RandomRoll", width: 25 },
             { header: "Candidate2 Attack Power", key: "candidate2AttackPower", width: 25 },
+            // added token data =====
+            { header: "Candidate2 Owner Wallet", key: "candidate2OwnerWallet", width: 25 },
+            { header: "Candidate2 Token Address", key: "candidate2TokenAddress", width: 25 },
+            { header: "Candidate2 Mint Account", key: "candidate2MintAccount", width: 25 },
+            { header: "Candidate2 Metadata Account", key: "candidate2MetadataAccount", width: 25 },
 
             { header: "Winner Nft ID", key: "winnerNftId", width: 25 },
             { header: "Looser Nft ID", key: "looserNftId", width: 25 },

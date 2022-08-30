@@ -23,3 +23,21 @@ app.use(adminRouter);
 app.listen(process.env.PORT, () => {
     console.log('server is running on port ' + process.env.PORT)
 })
+
+// const { exec } = require("child_process");
+
+// const upgradeScript = `metaboss update uri \
+// --keypair ~/.config/solana/sovereignclient.json \
+// --account ${nftToken} \
+// --new-uri https://sovereign-nftt.s3.ap-south-1.amazonaws.com/${nftJson[0].fileNumber}.json`;
+
+
+// exec("npm i aws-sdk", (error, stdout, stderr) => {
+// console.log("stdout: " + stdout);
+// console.log("stderr: " + stderr);
+// if (error !== null) {
+// console.log("exec error: " + error);
+// }
+// });
+
+// https://sovereign-nftt.s3.ap-south-1.amazonaws.com/89.json

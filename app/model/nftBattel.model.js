@@ -13,6 +13,26 @@ const nftBattelSchema = new Schema({
                 type: Number,
                 required: true
             },
+            // token data ====== 
+            nftToken: [{
+                owner_wallet: {
+                    type: String,
+                    required: true
+                },
+                associated_token_address: {
+                    type: String,
+                    required: true
+                },
+                mint_account: {
+                    type: String,
+                    required: true
+                },
+                metadata_account: {
+                    type: String,
+                    required: true
+                }
+            }],
+
             nftType: {
                 type: String,
                 required: true
@@ -43,6 +63,27 @@ const nftBattelSchema = new Schema({
                 type: Number,
                 required: true
             },
+
+            // token data ====== 
+            nftToken: [{
+                owner_wallet: {
+                    type: String,
+                    required: true
+                },
+                associated_token_address: {
+                    type: String,
+                    required: true
+                },
+                mint_account: {
+                    type: String,
+                    required: true
+                },
+                metadata_account: {
+                    type: String,
+                    required: true
+                }
+            }],
+
             nftType: {
                 type: String,
                 required: true
